@@ -1,0 +1,222 @@
+# Step 1: Upload the zip file
+from google.colab import files
+files.upload()
+
+zip_filename = "Real and AI-Generated Synthetic.zip"   # update  file name
+
+extract_dir = "/content/ai_image_dataset_raw"
+data_dir = "/content/ai_image_dataset"
+
+
+import os
+import shutil
+
+# Clean old folders
+for p in [extract_dir, data_dir]:
+    if os.path.exists(p):
+        shutil.rmtree(p)
+
+os.makedirs(extract_dir, exist_ok=True)
+
+import zipfile
+
+# Extract the uploaded ZIP
+with zipfile.ZipFile(zip_filename, 'r') as zf:
+    zf.extractall(extract_dir)
+
+print("Extraction complete. Files are in:", extract_dir)
+
+import os
+import shutil
+
+# Ensure data_dir exists and is clean before populating it
+if os.path.exists(data_dir):
+    shutil.rmtree(data_dir)
+os.makedirs(data_dir, exist_ok=True)
+
+# Debug: Print contents of extract_dir after extraction (assuming s8yrKs9QEbIg has run)
+print(f"Contents of {extract_dir} after extraction:")
+if os.path.exists(extract_dir):
+    for item in os.listdir(extract_dir):
+        print(f"  - {item}")
+else:
+    print(f"  {extract_dir} does not exist.")
+
+# Determine the actual root of the extracted dataset
+actual_extracted_root = extract_dir # default assumption
+
+# Check for a single top-level directory like 'Real and AI-Generated Synthetic'
+# that might contain train/val/test
+items_in_extract_dir = os.listdir(extract_dir) if os.path.exists(extract_dir) else []
+potential_sub_root = os.path.join(extract_dir, "Real and AI-Generated Synthetic")
+
+if os.path.exists(potential_sub_root) and os.path.isdir(potential_sub_root):
+    actual_extracted_root = potential_sub_root
+    print(f"Identified dataset root as: {actual_extracted_root}")
+elif len(items_in_extract_dir) == 1 and os.path.isdir(os.path.join(extract_dir, items_in_extract_dir[0])):
+    # If there's only one directory and it's not the named one, use that as the root
+    actual_extracted_root = os.path.join(extract_dir, items_in_extract_dir[0])
+    print(f"Identified dataset root as single subdirectory: {actual_extracted_root}")
+else:
+    print(f"Assuming {extract_dir} is the dataset root.")
+
+# Move the 'train', 'val', 'test' subdirectories directly to data_dir
+if os.path.exists(actual_extracted_root):
+    for item in os.listdir(actual_extracted_root):
+        source_path = os.path.join(actual_extracted_root, item)
+        destination_path = os.path.join(data_dir, item)
+        # Only move if it's train, val, or test and it's a directory
+        if os.path.isdir(source_path) and item in ['train', 'val', 'test']:
+            shutil.move(source_path, destination_path)
+            print(f"Moved {source_path} to {destination_path}")
+        else:
+            print(f"Skipping non-dataset item: {source_path}")
+
+    print(f"Dataset prepared and moved to: {data_dir}")
+else:
+    print(f"Actual extracted root '{actual_extracted_root}' not found. No data moved.")
+
+# Final verification of data_dir content
+print("\nFinal Contents of data_dir (first few files):")
+if os.path.exists(data_dir):
+    for root, dirs, files in os.walk(data_dir):
+        level = root.replace(data_dir, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        print(f'{indent}{os.path.basename(root)}/')
+        subindent = ' ' * 4 * (level + 1)
+        file_count = 0
+        for f_name in files:
+            if f_name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp')):
+                print(f'{subindent}{f_name}')
+                file_count += 1
+                if file_count > 2:
+                    print(f'{subindent}...')
+                    break
+        if level >= 2:
+            break
+else:
+    print(f"Data directory '{data_dir}' does not exist.")
+
+import tensorflow as tf
+
+IMG_SIZE = (224, 224)  # example image size
+
+model = tf.keras.Sequential([
+    # First convolutional block
+    tf.keras.layers.Conv2D(32, 3, activation='relu', input_shape=IMG_SIZE + (3,)),
+    tf.keras.layers.MaxPooling2D(),
+
+    # Second convolutional block
+    tf.keras.layers.Conv2D(64, 3, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+
+    # Third convolutional block
+    tf.keras.layers.Conv2D(128, 3, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+
+    # Flatten and dense layers
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dropout(0.5),
+
+    # Output layer for binary classification
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+# Compile the model
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+# Show summary
+model.summary()
+
+import matplotlib.pyplot as plt
+
+# Plot training & validation accuracy values
+plt.figure(figsize=(12, 5))
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Ensure df_results is available. Assuming it's already defined from earlier execution.
+# If not, it would need to be re-created:
+# results = {
+#     "Model": ["Baseline CNN", "EfficientNetB0"],
+#     "Accuracy": [0.88, 0.93],
+#     "F1-score": [0.87, 0.92]
+# }
+# df_results = pd.DataFrame(results)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+
+df_results.set_index('Model').plot(kind='bar', ax=ax, rot=0)
+
+ax.set_title('Model Performance Comparison')
+ax.set_ylabel('Score')
+ax.legend(title='Metric')
+ax.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+defined_variables = %who_ls
+
+if 'train_ds' in defined_variables:
+    print("train_ds is defined.")
+else:
+    print("train_ds is NOT defined.")
+
+if 'val_ds' in defined_variables:
+    print("val_ds is defined.")
+else:
+    print("val_ds is NOT defined.")
+import tensorflow as tf
+
+# Assuming IMG_SIZE is defined as (224, 224)
+BATCH_SIZE = 32
+
+# Define the validation split percentage
+VALIDATION_SPLIT = 0.2 # 20% of training data for validation
+
+# Create train_ds and val_ds from the 'train' directory with a validation split
+train_ds = tf.keras.utils.image_dataset_from_directory(
+    data_dir + '/train',
+    labels='inferred',
+    label_mode='binary',
+    image_size=IMG_SIZE,
+    interpolation='nearest',
+    batch_size=BATCH_SIZE,
+    shuffle=True,
+    validation_split=VALIDATION_SPLIT,
+    subset='training',
+    seed=42 # for reproducibility
+)
+
+val_ds = tf.keras.utils.image_dataset_from_directory(
+    data_dir + '/train',
+    labels='inferred',
+    label_mode='binary',
+    image_size=IMG_SIZE,
+    interpolation='nearest',
+    batch_size=BATCH_SIZE,
+    shuffle=False, # No need to shuffle validation data
+    validation_split=VALIDATION_SPLIT,
+    subset='validation',
+    seed=42 # for reproducibility
+)
+
+# Create test_ds from the 'test' directory
+test_ds = tf.keras.utils.image_dataset_from_directory(
+    data_dir + '/test',
+    labels='inferred',
+    label_mode='binary',
+    image_size=IMG_SIZE,
+    interpolation='nearest',
+    batch_size=BATCH_SIZE,
+    shuffle=False
+)
+
+print("Datasets created: train_ds, val_ds, test_ds.")
+
